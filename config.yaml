@@ -1,0 +1,30 @@
+input:
+  sls:
+    # endpoint: cn-shenzhen-intranet.log.aliyuncs.com
+    endpoint: cn-shenzhen.log.aliyuncs.com
+    access_key: ${ALIYUN_ACCESS_KEY}
+    access_key_secret: ${ALIYUN_ACCESS_KEY_SECRET}
+    project: ${ALIYUN_SLS_PROJECT}
+    logstores:
+      - test
+    consumer_group: sls2oss
+    consumer_name: ${POD_NAME}
+    fetch_interval_ms: 100
+    cursor_position: BEGIN_CURSOR
+    in_order: true
+    include_meta: true
+output:
+  oss:
+    # endpoint: https://oss-cn-shenzhen-internal.aliyuncs.com
+    endpoint: https://oss-cn-shenzhen.aliyuncs.com
+    access_key: ${ALIYUN_ACCESS_KEY}
+    access_key_secret: ${ALIYUN_ACCESS_KEY_SECRET}
+    bucket: prod-archivelog
+    compress: true
+    compress_level: -1
+    max_size: 1024
+    max_age: 10m
+    scan_interval: 1s
+    close_inactive: 1m
+metric:
+  port: 9115
