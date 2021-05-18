@@ -8,6 +8,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/spf13/pflag"
+	_ "go.uber.org/automaxprocs"
 	"golang.org/x/sync/errgroup"
 
 	"gl.weeget.cn/devops/sls2oss/internal"

@@ -11,6 +11,7 @@ require (
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/vjeantet/jodaTime v1.0.0
+	go.uber.org/automaxprocs v1.4.0 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	sigs.k8s.io/yaml v1.2.0
 )
