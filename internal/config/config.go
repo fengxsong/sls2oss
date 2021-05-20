@@ -12,11 +12,12 @@ import (
 )
 
 type Config struct {
-	Input  *Input  `json:"input"`
-	Filter *Filter `json:"filter,omitempty"`
-	Output *Output `json:"output"`
-	Metric *Metric `json:"metric,omitempty"`
-	Worker int     `json:"worker,omitempty"`
+	Input   *Input   `json:"input"`
+	Filter  *Filter  `json:"filter,omitempty"`
+	Output  *Output  `json:"output"`
+	Metric  *Metric  `json:"metric,omitempty"`
+	Logging *Logging `json:"logging,omitempty"`
+	Worker  int      `json:"worker,omitempty"`
 }
 
 type Input struct {
@@ -29,6 +30,12 @@ type Filter struct {
 
 type Output struct {
 	Oss *OssConfig `json:"oss"`
+}
+
+type Logging struct {
+	Level  string `json:"level"`
+	File   string `json:"file"`
+	Format string `json:"format"`
 }
 
 type Metric struct {
@@ -109,8 +116,13 @@ func ReadFromFile(path string) (*Config, error) {
 	}
 	data := os.ExpandEnv(string(content))
 	var cfg Config
-	err = yaml.Unmarshal([]byte(data), &cfg)
-	return &cfg, err
+	if err = yaml.Unmarshal([]byte(data), &cfg); err != nil {
+		return nil, err
+	}
+	if err = cfg.ValidateAndSetDefaults(); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }
 
 func (c *Config) ValidateAndSetDefaults() error {
@@ -118,11 +130,18 @@ func (c *Config) ValidateAndSetDefaults() error {
 		if err := c.Input.Sls.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
+	} else {
+		return errors.New("undefined sls input")
 	}
 	if c.Output.Oss != nil {
 		if err := c.Output.Oss.ValidateAndSetDefaults(); err != nil {
 			return err
 		}
+	} else {
+		return errors.New("undefined oss output")
+	}
+	if c.Logging == nil {
+		c.Logging = &Logging{}
 	}
 	if c.Worker == 0 {
 		c.Worker = runtime.NumCPU()

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
 	"github.com/go-kit/kit/log"
@@ -56,39 +57,60 @@ func main() {
 		return
 	}
 
-	logger := initLogger(logLevelF)
 	cfg, err := config.ReadFromFile(configFileF)
 	if err != nil {
-		fatal(logger, "msg", "read config", "err", err)
+		fatal("read config error", err)
 	}
-	if err = cfg.ValidateAndSetDefaults(); err != nil {
-		fatal(logger, "msg", "invalid config", "err", err)
+
+	if cfg.Logging.Level == "" || pflag.Lookup("log-level").Changed {
+		cfg.Logging.Level = logLevelF
 	}
+	logger := initLogger(cfg.Logging)
+
 	quit := internal.SetupSignalHandler()
 	ossWriter, err := writer.NewOssWriter(cfg.Output.Oss, logger, quit)
 	if err != nil {
-		fatal(logger, "msg", "create oss writer", "err", err)
+		fatal("failed to create oss writer", err)
 	}
 	h := handler.New(logger, dateFmtF, cfg.Worker, ossWriter, quit)
 	g := &errgroup.Group{}
+	// wait for oss write to complete.
+	g.Go(func() error { return ossWriter.Wait() })
 	g.Go(func() error { return metrics.Serve(cfg.Metric.Port, cfg.Metric.Path, logger, quit) })
 	for _, ls := range cfg.Input.Sls.Logstores {
 		consumer := consumer.New(toLogHubConfig(cfg.Input.Sls, ls), cfg.Input.Sls.IncludeMeta, h.Consume)
 		g.Go(func() error { return consumer.Run(quit) })
 	}
 	if err := g.Wait(); err != nil {
-		fatal(logger, "msg", err)
+		fatal("error occur while waiting goroutines to exit", err)
 	}
 }
 
-func fatal(logger log.Logger, keyvals ...interface{}) {
-	level.Error(logger).Log(keyvals...)
+func fatal(args ...interface{}) {
+	fmt.Println(args...)
 	os.Exit(1)
 }
 
-func initLogger(lvl string) log.Logger {
-	logger := log.NewLogfmtLogger(os.Stdout)
-	switch lvl {
+func initLogger(cfg *config.Logging) log.Logger {
+	writer := os.Stdout
+	if len(cfg.File) > 0 {
+		var err error
+		writer, err = os.OpenFile(cfg.File, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}
+	var logger log.Logger
+	switch strings.ToLower(cfg.Format) {
+	case "none":
+		logger = log.NewNopLogger()
+	case "json":
+		logger = log.NewJSONLogger(writer)
+	default:
+		logger = log.NewLogfmtLogger(writer)
+	}
+	switch cfg.Level {
 	case "debug":
 		logger = level.NewFilter(logger, level.AllowDebug())
 	case "warn":

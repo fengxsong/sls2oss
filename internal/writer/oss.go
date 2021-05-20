@@ -27,6 +27,7 @@ type OssWriter struct {
 	ossBucketClient *oss.Bucket
 	// simple mutex to ensure thread safe
 	files map[string]*RotateWriter
+	wg    *sync.WaitGroup
 	mu    sync.Mutex
 }
 
@@ -39,6 +40,7 @@ func NewOssWriter(cfg *config.OssConfig, logger log.Logger, quit <-chan struct{}
 		quit:   quit,
 		logger: logger,
 		files:  make(map[string]*RotateWriter),
+		wg:     &sync.WaitGroup{},
 	}
 	ossClient, err := oss.New(w.cfg.Endpoint, w.cfg.AccessKeyID, w.cfg.AccessKeySecret)
 	if err != nil {
@@ -66,8 +68,15 @@ func (w *OssWriter) loop() {
 	}
 }
 
-// todo: limit number of rotateWriters
-// too many goroutines may cause panic
+// todo or fix: ensure wait happend after rotate writer close
+func (w *OssWriter) Wait() error {
+	<-w.quit
+	w.wg.Wait()
+	level.Info(w.logger).Log("msg", "about to exit oss writer")
+	return nil
+}
+
+// todo: limit number of rotateWriters, too many goroutines may cause panic
 func (w *OssWriter) get(path string) (*RotateWriter, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -103,6 +112,10 @@ var bufPool = sync.Pool{
 }
 
 func (w *OssWriter) send(path string) {
+	level.Debug(w.logger).Log("sendfile", path)
+	w.wg.Add(1)
+	defer w.wg.Done()
+
 	if w.ossBucketClient == nil {
 		level.Warn(w.logger).Log("msg", "null oss bucket client")
 		return
@@ -115,7 +128,6 @@ func (w *OssWriter) send(path string) {
 		}
 	}()
 
-	topic := getTopicFromPath(path)
 	ossOptions := []oss.Option{}
 	if w.cfg.StorageClassType != "" {
 		ossOptions = append(ossOptions, oss.ObjectStorageClass(oss.StorageClassType(w.cfg.StorageClassType)))
@@ -148,15 +160,15 @@ func (w *OssWriter) send(path string) {
 			level.Error(w.logger).Log("msg", "write gzip file", "err", err)
 			return
 		}
-		metrics.PipelineWriteBytesTotal.WithLabelValues(topic, "temp", "gzip").Add(float64(buf.Len()))
+		defer os.Remove(gzFile)
+
 		objectKey := getObjectKeyFromPath(gzFile)
 		level.Debug(w.logger).Log("msg", "put object file", "object", objectKey, "gzfile", gzFile)
 		if err = w.ossBucketClient.PutObjectFromFile(objectKey, gzFile, ossOptions...); err != nil {
 			level.Error(w.logger).Log("msg", "send objectfile", "err", err)
 			return
 		}
-		metrics.PipelineWriteBytesTotal.WithLabelValues(topic, "oss", "gzip").Add(float64(buf.Len()))
-		os.Remove(gzFile)
+		metrics.PipelineWriteBytesTotal.WithLabelValues(getTopicFromObjectKey(objectKey), "oss", "gzip").Add(float64(buf.Len()))
 		return
 	}
 	objectKey := getObjectKeyFromPath(path)
@@ -166,9 +178,8 @@ func (w *OssWriter) send(path string) {
 	}
 }
 
-func getTopicFromPath(s string) string {
-	s = strings.TrimPrefix(s, os.TempDir())
-	return strings.Split(s, "/")[0]
+func getTopicFromObjectKey(s string) string {
+	return strings.Split(s, string(os.PathSeparator))[0]
 }
 
 func getObjectKeyFromPath(s string) string {

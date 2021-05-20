@@ -2,6 +2,7 @@ package writer
 
 import (
 	"errors"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -35,6 +36,7 @@ type RotateWriter struct {
 	createdAt time.Time
 	logger    log.Logger
 	mu        sync.Mutex
+	index     int
 }
 
 type Option func(*RotateWriter)
@@ -207,12 +209,13 @@ func (w *RotateWriter) openNew() error {
 	}
 	w.file = f
 	w.createdAt = time.Now()
+	w.index += 1
 	return nil
 }
 
 func (w *RotateWriter) filename() string {
 	if w.fn == "" {
-		w.fn = filepath.Join(os.TempDir(), w.pattern, strconv.Itoa(int(time.Now().Unix())))
+		w.fn = filepath.Join(os.TempDir(), w.pattern, RandStringRunes(5)+"-"+strconv.Itoa(w.index))
 	}
 	return w.fn
 }
@@ -222,4 +225,18 @@ func (w *RotateWriter) max() int64 {
 		return int64(defaultSize * megabyte)
 	}
 	return int64(w.maxSize * megabyte)
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func RandStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
 }
