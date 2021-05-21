@@ -7,7 +7,7 @@ import (
 	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
 	"github.com/go-kit/kit/log/level"
 
-	"gl.weeget.cn/devops/sls2oss/internal"
+	"github.com/fengxsong/sls2oss/internal"
 )
 
 type Consumer interface {

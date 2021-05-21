@@ -8,10 +8,10 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/vjeantet/jodaTime"
 
-	"gl.weeget.cn/devops/sls2oss/internal"
-	"gl.weeget.cn/devops/sls2oss/internal/filter"
-	"gl.weeget.cn/devops/sls2oss/internal/metrics"
-	"gl.weeget.cn/devops/sls2oss/internal/writer"
+	"github.com/fengxsong/sls2oss/internal"
+	"github.com/fengxsong/sls2oss/internal/filter"
+	"github.com/fengxsong/sls2oss/internal/metrics"
+	"github.com/fengxsong/sls2oss/internal/writer"
 )
 
 type ConsumeFunc func(map[string]interface{}) error

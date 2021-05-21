@@ -1,4 +1,4 @@
-module gl.weeget.cn/devops/sls2oss
+module github.com/fengxsong/sls2oss
 
 go 1.16
 

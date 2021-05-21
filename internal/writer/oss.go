@@ -14,8 +14,8 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 
-	"gl.weeget.cn/devops/sls2oss/internal/config"
-	"gl.weeget.cn/devops/sls2oss/internal/metrics"
+	"github.com/fengxsong/sls2oss/internal/config"
+	"github.com/fengxsong/sls2oss/internal/metrics"
 )
 
 // oss writer wrap rotateWriter

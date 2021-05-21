@@ -3,7 +3,7 @@ SHORT_NAME ?= sls2oss
 BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 HASH = $(shell git describe --dirty --tags --always)
 VERSION ?= unknown
-REPO = gl.weeget.cn/devops/sls2oss
+REPO = github.com/fengxsong/sls2oss
 
 BUILD_PATH = main.go
 OUTPUT_PATH = build/_output/bin/$(SHORT_NAME)

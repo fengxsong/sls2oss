@@ -12,13 +12,13 @@ import (
 	_ "go.uber.org/automaxprocs"
 	"golang.org/x/sync/errgroup"
 
-	"gl.weeget.cn/devops/sls2oss/internal"
-	"gl.weeget.cn/devops/sls2oss/internal/config"
-	"gl.weeget.cn/devops/sls2oss/internal/consumer"
-	"gl.weeget.cn/devops/sls2oss/internal/handler"
-	"gl.weeget.cn/devops/sls2oss/internal/metrics"
-	"gl.weeget.cn/devops/sls2oss/internal/version"
-	"gl.weeget.cn/devops/sls2oss/internal/writer"
+	"github.com/fengxsong/sls2oss/internal"
+	"github.com/fengxsong/sls2oss/internal/config"
+	"github.com/fengxsong/sls2oss/internal/consumer"
+	"github.com/fengxsong/sls2oss/internal/handler"
+	"github.com/fengxsong/sls2oss/internal/metrics"
+	"github.com/fengxsong/sls2oss/internal/version"
+	"github.com/fengxsong/sls2oss/internal/writer"
 )
 
 var (
