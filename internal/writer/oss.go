@@ -71,6 +71,8 @@ func (w *OssWriter) loop() {
 // todo or fix: ensure wait happend after rotate writer close
 func (w *OssWriter) Wait() error {
 	<-w.quit
+	// very simple trick :)
+	time.Sleep(time.Second)
 	w.wg.Wait()
 	level.Info(w.logger).Log("msg", "about to exit oss writer")
 	return nil
