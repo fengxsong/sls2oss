@@ -42,7 +42,11 @@ func (c *slsConsumer) process(shardId int, logGroupList *sls.LogGroupList) strin
 	for _, lg := range logGroupList.LogGroups {
 		for _, log := range lg.Logs {
 			m := make(map[string]interface{})
-			m[internal.TopicKey] = lg.GetCategory()
+			topic := lg.GetCategory()
+			if topic == "" {
+				topic = c.config.Logstore
+			}
+			m[internal.TopicKey] = topic
 			m[internal.TimeKey] = time.Unix(int64(log.GetTime()), 0)
 			if c.includeMeta {
 				for i := range lg.LogTags {
