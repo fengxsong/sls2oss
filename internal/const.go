@@ -2,5 +2,5 @@ package internal
 
 const (
 	TimeKey  = "@timestamp"
-	TopicKey = "_topic"
+	TopicKey = "__topic__"
 )
