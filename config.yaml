@@ -26,5 +26,10 @@ output:
     max_age: 10m
     scan_interval: 1s
     close_inactive: 1m
+    sync_orphaned_files: true
+    temp_dir: ${TMPDIR}
+logging:
+  level: debug # info/debug/warn/error
+  file: ''
 metric:
   port: 9115
