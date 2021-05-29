@@ -182,10 +182,10 @@ func (w *RotateWriter) Closed() bool {
 }
 
 func (w *RotateWriter) close() error {
-	level.Debug(w.logger).Log("msg", "trying to close file", "path", w.filename())
 	if w.file == nil {
 		return nil
 	}
+	level.Debug(w.logger).Log("msg", "trying to close file", "path", w.filename())
 	err := w.file.Close()
 	if w.asyncRotateCallback != nil {
 		go w.asyncRotateCallback(w.filename())
@@ -213,7 +213,7 @@ func (w *RotateWriter) openNew() error {
 
 func (w *RotateWriter) filename() string {
 	if w.fn == "" {
-		w.fn = filepath.Join(os.TempDir(), w.pattern, RandStringRunes(5)+"-"+strconv.Itoa(int(time.Now().Unix())))
+		w.fn = filepath.Join(w.pattern, RandStringRunes(5)+"-"+strconv.Itoa(int(time.Now().Unix())))
 	}
 	return w.fn
 }

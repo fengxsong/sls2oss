@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +19,8 @@ import (
 	"github.com/fengxsong/sls2oss/internal/config"
 	"github.com/fengxsong/sls2oss/internal/metrics"
 )
+
+const gzExtension = ".gz"
 
 // oss writer wrap rotateWriter
 type OssWriter struct {
@@ -68,6 +72,27 @@ func (w *OssWriter) loop() {
 	}
 }
 
+func (w *OssWriter) StartWait() error {
+	if !w.cfg.SyncOrphanedFiles {
+		return nil
+	}
+	// todo: do it async??
+	err := filepath.Walk(w.cfg.TempDir, func(path string, info os.FileInfo, err error) error {
+		// skip not found error
+		if os.IsNotExist(err) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && !strings.HasSuffix(path, gzExtension) {
+			w.send(path)
+		}
+		return nil
+	})
+	return err
+}
+
 // todo or fix: ensure wait happend after rotate writer close
 func (w *OssWriter) Wait() error {
 	<-w.quit
@@ -79,14 +104,14 @@ func (w *OssWriter) Wait() error {
 }
 
 // todo: limit number of rotateWriters, too many goroutines may cause panic
-func (w *OssWriter) get(path string) (*RotateWriter, error) {
+func (w *OssWriter) get(pattern string) (*RotateWriter, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	rw, ok := w.files[path]
+	rw, ok := w.files[pattern]
 	if !ok {
 		var err error
 		// todo: check if argument is valid
-		rw, err = New(path, w.quit,
+		rw, err = New(path.Join(w.cfg.TempDir, pattern), w.quit,
 			WithMaxSize(w.cfg.MaxSize),
 			WithMaxAge(time.Duration(w.cfg.MaxAge)),
 			WithScanInterval(time.Duration(w.cfg.ScanInterval)),
@@ -96,7 +121,7 @@ func (w *OssWriter) get(path string) (*RotateWriter, error) {
 		if err != nil {
 			return nil, err
 		}
-		w.files[path] = rw
+		w.files[pattern] = rw
 	}
 	return rw, nil
 }
@@ -157,14 +182,14 @@ func (w *OssWriter) send(path string) {
 			level.Error(w.logger).Log("msg", "close gzipwriter", "err", err)
 			return
 		}
-		gzFile := path + ".gz"
+		gzFile := path + gzExtension
 		if err = ioutil.WriteFile(gzFile, buf.Bytes(), 0644); err != nil {
 			level.Error(w.logger).Log("msg", "write gzip file", "err", err)
 			return
 		}
 		defer os.Remove(gzFile)
 
-		objectKey := getObjectKeyFromPath(gzFile)
+		objectKey := getObjectKeyFromPath(gzFile, w.cfg.TempDir)
 		level.Debug(w.logger).Log("msg", "put object file", "object", objectKey, "gzfile", gzFile)
 		if err = w.ossBucketClient.PutObjectFromFile(objectKey, gzFile, ossOptions...); err != nil {
 			level.Error(w.logger).Log("msg", "send objectfile", "err", err)
@@ -173,7 +198,7 @@ func (w *OssWriter) send(path string) {
 		metrics.PipelineWriteBytesTotal.WithLabelValues(getTopicFromObjectKey(objectKey), "oss", "gzip").Add(float64(buf.Len()))
 		return
 	}
-	objectKey := getObjectKeyFromPath(path)
+	objectKey := getObjectKeyFromPath(path, w.cfg.TempDir)
 	level.Debug(w.logger).Log("msg", "put object file", "object", objectKey, "file", path)
 	if err = w.ossBucketClient.PutObjectFromFile(objectKey, path, ossOptions...); err != nil {
 		level.Error(w.logger).Log("msg", "send objectfile", "err", err)
@@ -184,6 +209,6 @@ func getTopicFromObjectKey(s string) string {
 	return strings.Split(s, string(os.PathSeparator))[0]
 }
 
-func getObjectKeyFromPath(s string) string {
-	return strings.TrimPrefix(strings.TrimPrefix(s, os.TempDir()), string(os.PathSeparator))
+func getObjectKeyFromPath(s string, prefix string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(s, prefix), string(os.PathSeparator))
 }

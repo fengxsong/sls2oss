@@ -65,17 +65,19 @@ func (c *SlsConfig) ValidateAndSetDefaults() error {
 }
 
 type OssConfig struct {
-	Endpoint         string   `json:"endpoint"`
-	AccessKeyID      string   `json:"access_key"`
-	AccessKeySecret  string   `json:"access_key_secret"`
-	Bucket           string   `json:"bucket"`
-	StorageClassType string   `json:"storage_class"`
-	Compress         bool     `json:"compress"`
-	CompressLevel    int      `json:"compress_level"`
-	MaxSize          int      `json:"max_size"`
-	MaxAge           Duration `json:"max_age"`
-	CloseInactive    Duration `json:"close_inactive"`
-	ScanInterval     Duration `json:"scan_interval"`
+	Endpoint          string   `json:"endpoint"`
+	AccessKeyID       string   `json:"access_key"`
+	AccessKeySecret   string   `json:"access_key_secret"`
+	Bucket            string   `json:"bucket"`
+	StorageClassType  string   `json:"storage_class"`
+	Compress          bool     `json:"compress"`
+	CompressLevel     int      `json:"compress_level"`
+	MaxSize           int      `json:"max_size"`
+	MaxAge            Duration `json:"max_age"`
+	CloseInactive     Duration `json:"close_inactive"`
+	ScanInterval      Duration `json:"scan_interval"`
+	TempDir           string   `json:"temp_dir"`
+	SyncOrphanedFiles bool     `json:"sync_orphaned_files"`
 }
 
 type Duration time.Duration
@@ -106,6 +108,9 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 }
 
 func (c *OssConfig) ValidateAndSetDefaults() error {
+	if c.TempDir == "" {
+		c.TempDir = os.TempDir()
+	}
 	return nil
 }
 

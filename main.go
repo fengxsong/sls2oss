@@ -72,6 +72,11 @@ func main() {
 	if err != nil {
 		fatal("failed to create oss writer", err)
 	}
+	if cfg.Output.Oss.SyncOrphanedFiles {
+		if err = ossWriter.StartWait(); err != nil {
+			fatal("failed to do some prestart jobs", err)
+		}
+	}
 	h := handler.New(logger, dateFmtF, cfg.Worker, ossWriter, quit)
 	g := &errgroup.Group{}
 	// wait for oss write to complete.
