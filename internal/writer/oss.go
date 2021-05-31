@@ -76,14 +76,11 @@ func (w *OssWriter) StartWait() error {
 	if !w.cfg.SyncOrphanedFiles {
 		return nil
 	}
-	// todo: do it async??
+	// for saving memory, do NOT use async.
 	err := filepath.Walk(w.cfg.TempDir, func(path string, info os.FileInfo, err error) error {
-		// skip not found error
-		if os.IsNotExist(err) {
-			return nil
-		}
+		// Lstat will only return one kind of error is 'pathErr', just ignore.
 		if err != nil {
-			return err
+			return nil
 		}
 		if !info.IsDir() && !strings.HasSuffix(path, gzExtension) {
 			w.send(path)
