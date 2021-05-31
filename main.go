@@ -83,7 +83,8 @@ func main() {
 	g.Go(func() error { return ossWriter.Wait() })
 	g.Go(func() error { return metrics.Serve(cfg.Metric.Port, cfg.Metric.Path, logger, quit) })
 	for _, ls := range cfg.Input.Sls.Logstores {
-		consumer := consumer.New(toLogHubConfig(cfg.Input.Sls, ls), cfg.Input.Sls.IncludeMeta, h.Consume)
+		lsLogger := log.With(logger, "logstore", ls)
+		consumer := consumer.New(toLogHubConfig(cfg.Input.Sls, ls), lsLogger, cfg.Input.Sls.IncludeMeta, h.Consume)
 		g.Go(func() error { return consumer.Run(quit) })
 	}
 	if err := g.Wait(); err != nil {

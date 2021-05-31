@@ -5,6 +5,7 @@ import (
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
 	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
+	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 
 	"github.com/fengxsong/sls2oss/internal"
@@ -16,14 +17,16 @@ type Consumer interface {
 
 type slsConsumer struct {
 	config      *consumerLibrary.LogHubConfig
+	logger      log.Logger
 	cw          *consumerLibrary.ConsumerWorker
 	consumeOne  func(map[string]interface{}) error
 	includeMeta bool
 }
 
-func New(cfg *consumerLibrary.LogHubConfig, includeMeta bool, fn func(map[string]interface{}) error) Consumer {
+func New(cfg *consumerLibrary.LogHubConfig, logger log.Logger, includeMeta bool, fn func(map[string]interface{}) error) Consumer {
 	return &slsConsumer{
 		config:      cfg,
+		logger:      logger,
 		consumeOne:  fn,
 		includeMeta: includeMeta,
 	}
@@ -31,6 +34,10 @@ func New(cfg *consumerLibrary.LogHubConfig, includeMeta bool, fn func(map[string
 
 func (c *slsConsumer) Run(quit <-chan struct{}) error {
 	c.cw = consumerLibrary.InitConsumerWorker(*c.config, c.process)
+	// todo: set inner logger
+	if c.logger != nil {
+		c.cw.Logger = c.logger
+	}
 	c.cw.Start()
 	<-quit
 	level.Info(c.cw.Logger).Log("msg", "quiting")

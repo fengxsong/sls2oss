@@ -187,7 +187,7 @@ func (w *OssWriter) send(path string) {
 		defer os.Remove(gzFile)
 
 		objectKey := getObjectKeyFromPath(gzFile, w.cfg.TempDir)
-		level.Debug(w.logger).Log("msg", "put object file", "object", objectKey, "gzfile", gzFile)
+		level.Info(w.logger).Log("msg", "put object file", "object", objectKey, "gzfile", gzFile)
 		if err = w.ossBucketClient.PutObjectFromFile(objectKey, gzFile, ossOptions...); err != nil {
 			level.Error(w.logger).Log("msg", "send objectfile", "err", err)
 			return
@@ -196,7 +196,7 @@ func (w *OssWriter) send(path string) {
 		return
 	}
 	objectKey := getObjectKeyFromPath(path, w.cfg.TempDir)
-	level.Debug(w.logger).Log("msg", "put object file", "object", objectKey, "file", path)
+	level.Info(w.logger).Log("msg", "put object file", "object", objectKey, "file", path)
 	if err = w.ossBucketClient.PutObjectFromFile(objectKey, path, ossOptions...); err != nil {
 		level.Error(w.logger).Log("msg", "send objectfile", "err", err)
 	}
